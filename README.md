@@ -62,7 +62,7 @@ If you include the `--export-ssa` flag, an output file with the intermediary SSA
 If you include `--scheduler` flag, you can run different modes:
 - **ASAP**: as soon as possible scheduler. Constraints can be specified by user.
 - **ALAP**: as late as possible scheduler. Constraints can be specified by user.
-- **custom**: Our own custom experimental scheduler with various heuristics. Can include constraints if specified by user.
+- **CUSTOM**: Our own custom experimental scheduler with various heuristics. Can include constraints if specified by user.
 
 Main HLS synthesis script will also automatically generate verilog and testbenches that are ready-to-use for Artix-7 FPGA. 
 
