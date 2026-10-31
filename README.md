@@ -36,9 +36,14 @@ Make sure you have Vivado and Python installed beforehand (x86 preferred). Usefu
 
 In order to run this HLS tool, first do
 
-`python3 src/synth.py <test file>`
+`python3 src/synth.py <test file> --export-ssa --scheduler <mode> --constraints <adders=X> <multipliers=X> <subtractors=X>`
 
 If you include the `--export-ssa` flag, an output file with the intermediary SSA text file will be printed for debugging.
+
+If you include `--scheduler` flag, you can run different modes:
+- **ASAP**: as soon as possible scheduler. Constraints can be specified by user.
+- **ALAP**: as late as possible scheduler. Constraints can be specified by user.
+- **custom**: Our own custom experimental scheduler with various heuristics. Can include constraints if specified by user.
 
 Main HLS synthesis script will also automatically generate verilog and testbenches that are ready-to-use for Artix-7 FPGA. 
 
