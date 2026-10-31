@@ -21,9 +21,12 @@ We will have a text-format that allows for the following rules:
 
 3. Each equation will consist of two arguments
 
+4. OPTIONAL: Assignments for initial values are possible (e.g. hard-coded values). We can have X = 4, for instance at the beginning of the text file lines. If not specified, these initial values will all be converted to switches.
+
 For example,
 
 ```
+X = 2
 X = A + B
 Y = X + A
 Z = X - B
@@ -38,6 +41,14 @@ There are two important assumptions:
 
 This is helpful since we do not have to worry about negative number outputs on seven segment display or excessively using input switches to choose line number in text file for debug output!
 
+Note that since there is a maximum of 16 switches on our target Artix-7 FPGA, we will use the 20-line constraint to help adjust what the maximum bit-width of our uninitialized input variables are. To support 20-line maximum, we need 5 bits (e.g. 5 switches to specify functional unit in a single cycle, since worst-case is 20 functional units in a single cycle). Therefore, we have 11 switches availabe to us to output functional unit output. For simplicity, we assume 2-bit variable values; therefore, 2 switches per variable, with a maximum of 5 input variables.
+
+Therefore, we have implicit assumption (3) - (4)
+
+3. Input variables are 2-bit unsigned integers (e.g. hard-coded values are between 0 and 3).
+
+4. We can assume maximum uninitialized input variables of 5. 
+
 # 3.1 Using HLS tool in Python
 
 Make sure you have Vivado and Python installed beforehand (x86 preferred). Useful to have a Artix-7 FPGA compatible with this project.
@@ -46,7 +57,7 @@ In order to run this HLS tool, first do
 
 `python3 src/synth.py <test file> --export-ssa --scheduler <mode> --constraints <adders=X> <multipliers=X> <subtractors=X>`
 
-If you include the `--export-ssa` flag, an output file with the intermediary SSA text file will be printed for debugging.
+If you include the `--export-ssa` flag, an output file with the intermediary SSA text file will be printed for debugging. Regardless, each run of synth.py will generate a debug scheduler output that specifies all the functional units (and their corresponding index) for each "cycle" within the datapath. This will help with debugging and using the input switches on the FPGA after synthesizing the resulting Verilog later.
 
 If you include `--scheduler` flag, you can run different modes:
 - **ASAP**: as soon as possible scheduler. Constraints can be specified by user.
@@ -69,7 +80,7 @@ vivado -mode batch -source vivadoSynth.tcl -tclargs --output_dir output/verilog/
 ```
 
 Features:
-- **Automatic I/O Mapping**: Nexys 4 DDR switches (`SW[0]`, `SW[1]`, ...) used to specify line number of equation in binary and then that output is automatically mapped to 7 segment display. There will be a button that can be pressed to step through every equation in input text file (e.g. "clocking") starting from first equation line. Reset button will be included if user wants to start again from first line.
+- **Automatic I/O Mapping**: Nexys 4 DDR switches (`SW[0]`, `SW[1]`, ...) used to specify functional unit number in given cycle and initialize 2-bit input variables. Output is automatically mapped to 7 segment display given functional unit in given cycle. Check debug scheduler text output to see what functional units exist in each cycle number to help with FPGA usage. There will be a button that can be pressed to step through every equation in input text file (e.g. "clocking") starting from first equation line. Reset button will be included if user wants to start again from first line.
 - **Target Part**: `xc7a100tcsg324-1` (Artix-7, Package `csg324`, Speed `-1`).
 - **Constraints**: Generates `auto_pins.xdc` inside the Verilog run directory referencing board pins from `output/verilog/Nexys4DDR_Master.xdc`.
 - **Hardware Programming**: Connects to the Vivado Hardware Manager and automatically programs connected FPGA hardware.
@@ -101,7 +112,8 @@ vivado -mode batch -source vivadoBitstream.tcl -tclargs --bitstream output/veril
 │   │   ├── report_<timestamp>.log
 │   │   └── program_<timestamp>.log
 │   ├── metrics
-│   │   └── SSA_<test file name>_<timestamp>.txt
+│   │   ├── SSA_<test file name>_<timestamp>.txt
+│   │   └── scheduler_<test file name>_<timestamp>.txt
 │   └── verilog
 │       ├── Nexys4DDR_Master.xdc
 │       └── <test file name>_<timestamp>
