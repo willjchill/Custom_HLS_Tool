@@ -1,7 +1,9 @@
 from pathlib import Path
 import re
-from typing import List, Optional
+from typing import Dict, List, Set
 from datetime import datetime
+
+MAX_INPUT_VARS = 5 # 2 switches per variable (see README section 2.1)
 
 def _tokenize_file(input_file: Path) -> List[List[str]]:
     """
@@ -46,7 +48,7 @@ def _tokenize_file(input_file: Path) -> List[List[str]]:
             if match.group("op"):
                 tokens_per_line.append([match.group("lhs"), match.group("op1"), match.group("op2"), match.group("op")]) # real ops
             else:
-                if int(match.group("val")) < 0 and int(match.group("val")) > 3:
+                if int(match.group("val")) > 3:
                     raise ValueError(f"Invalid hard-coded assignment. Integer must be between 0-3: '{line}'")
                 tokens_per_line.append([match.group("lhs"), match.group("val")]) # hard-coded assignment
 
@@ -120,6 +122,54 @@ def extractSSA(input_file: Path, printSSA: bool) -> List[List[str]]:
     print(f"  • File Name    : {output_file.name}")
     print(f"  • Absolute Path: {output_file.resolve()}")
     return ssa_tokens
+
+class DAG:
+    """
+    Data dependency graph of SSA operations. Nodes are ops, named by their idx in ssa_tokens.
+    Hard-coded assignments are not nodes, since they need no functional unit.
+
+    Example:
+    [[X_0, A_0, B_0, +], [Y_0, X_0, A_0, *]] -> preds = {0: {}, 1: {0}}, succs = {0: {1}, 1: {}}
+    """
+    OP_RESOURCES = {"+": "adder", "-": "subtractor", "*": "multiplier"}
+
+    def __init__(self, ssa_tokens: List[List[str]]):
+        self.ssa_tokens = ssa_tokens
+        self.constants: Dict[str, int] = {}  # SSA var --> hard-coded value
+        self.inputs: List[str] = []          # SSA vars driven by switches, in order of first use
+        self.ops: Dict[int, str] = {}        # op idx --> resource type
+        self.preds: Dict[int, Set[int]] = {} # op idx --> ops it depends on
+        self.succs: Dict[int, Set[int]] = {} # op idx --> ops that depend on it
+        self.ssa2dag()
+
+    def ssa2dag(self) -> None:
+        """
+        Constructs DAG from SSA tokens, no scheduling yet!
+        SSA leaves only read-after-write dependencies, so each operand has one possible writer.
+        """
+        writers = {}  # SSA var --> op idx that produces it
+
+        for idx, eqn in enumerate(self.ssa_tokens):
+            if len(eqn) == 2:
+                self.constants[eqn[0]] = int(eqn[1])
+                continue
+
+            lhs, op1, op2, op = eqn
+            self.ops[idx] = self.OP_RESOURCES[op]
+            self.preds[idx], self.succs[idx] = set(), set()
+            for operand in (op1, op2):
+                if operand in writers:
+                    self.preds[idx].add(writers[operand])
+                    self.succs[writers[operand]].add(idx)
+                elif operand not in self.constants and operand not in self.inputs:
+                    self.inputs.append(operand)
+            writers[lhs] = idx
+
+        # invariants
+        if not self.ops:
+            raise ValueError("Input file has no arithmetic operations to synthesize.")
+        if len(self.inputs) > MAX_INPUT_VARS:
+            raise ValueError(f"Uninitialized input variables exceeds maximum of {MAX_INPUT_VARS}: {self.inputs}")
 
 if __name__ == "__main__":
     print("Debug")

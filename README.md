@@ -80,7 +80,18 @@ vivado -mode batch -source vivadoSynth.tcl -tclargs --output_dir output/verilog/
 ```
 
 Features:
-- **Automatic I/O Mapping**: Nexys 4 DDR switches (`SW[0]`, `SW[1]`, ...) used to specify functional unit number in given cycle and initialize 2-bit input variables. Output is automatically mapped to 7 segment display given functional unit in given cycle. Check debug scheduler text output to see what functional units exist in each cycle number to help with FPGA usage. There will be a button that can be pressed to step through every equation in input text file (e.g. "clocking") starting from first equation line. Reset button will be included if user wants to start again from first line.
+- **Automatic I/O Mapping**: Check debug scheduler text output to see what functional units exist in each cycle number, and which switches drive each input variable. Functional unit numbers are the same across all cycles. Set input switches right after reset, since registers keep results that were already latched.
+
+| Board I/O | Function |
+| --- | --- |
+| `SW[4:0]` | Functional unit number to show on 7 segment display |
+| `SW[14:5]` | 2-bit input variables, in order of first use (first variable is `SW[6:5]`) |
+| 7 segment display | Functional unit output in current cycle, as 8 hex digits. Dashes mean that unit is idle this cycle |
+| `BTNC` | Step to next cycle (e.g. "clocking"), stops at last cycle |
+| `CPU_RESETN` | Reset back to first cycle |
+| `LED[4:0]` | Current cycle number |
+| `LED[15]` | On during last cycle |
+
 - **Target Part**: `xc7a100tcsg324-1` (Artix-7, Package `csg324`, Speed `-1`).
 - **Constraints**: Generates `auto_pins.xdc` inside the Verilog run directory referencing board pins from `output/verilog/Nexys4DDR_Master.xdc`.
 - **Hardware Programming**: Connects to the Vivado Hardware Manager and automatically programs connected FPGA hardware.
@@ -127,15 +138,15 @@ vivado -mode batch -source vivadoBitstream.tcl -tclargs --bitstream output/veril
 │       ├── hlsParser.py
 │       ├── scheduling.py
 │       ├── binding.py
-│       └── verilate.py
+│       └── verilator.py
 └── testcases
     ├── example1.txt
     └── example2.txt
 ```
 
-Note that "metrics" contains any debug output from main Python program. hlsParser converts text file and creates SSA. It also contains the DAG object definition, which will be used for scheduling and binding operations in their respective files. A generic Scheduler object which has-a DAG object and has-a List which specifies MUX/Register insertions in scheduled DAG. The final, populated Scheduler after binding and resource-constrained scheduling methods should be enough information to convert into standard Verilog file. This conversion is specified in verilate. 
+Note that "metrics" contains any debug output from main Python program. hlsParser converts text file and creates SSA. It also contains the DAG object definition, which will be used for scheduling and binding operations in their respective files. A generic Scheduler object which has-a DAG object and has-a List which specifies MUX/Register insertions in scheduled DAG. The final, populated Scheduler after binding and resource-constrained scheduling methods should be enough information to convert into standard Verilog file. This conversion is specified in verilator. 
 
 ------------
 
-Last updated 10/31/2026
+Last updated 1/1/2026
 William Desueza

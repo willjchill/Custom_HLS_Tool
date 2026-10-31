@@ -103,73 +103,53 @@ set top_file [lindex $valid_top 0]
 puts "INFO: Found top Verilog file: $top_file"
 
 # ------------------------------------------------------------------------------
-# 4. Parse Input and Output Ports from Verilog
+# 4. Top Port -> Board Net Mapping (ports are fixed by src/utils/verilator.py)
 # ------------------------------------------------------------------------------
-set inputs {}
-set outputs {}
-set fp [open $top_file r]
-set v_content [read $fp]
+# Each entry: {port, net name in master XDC, role}
+set port_map {
+    {"CLK100MHZ"  "clk100mhz"  "100 MHz clock"}
+    {"CPU_RESETN" "cpu_resetn" "Reset button"}
+    {"BTNC"       "btnc"       "Step button"}
+    {"DP"         "dp"         "Display decimal point"}
+}
+for {set i 0} {$i < 5} {incr i} {
+    lappend port_map [list "SW\[$i\]" "sw\[$i\]" "FU select bit $i"]
+}
+for {set i 5} {$i < 15} {incr i} {
+    set var_idx [expr {($i - 5) / 2}]
+    lappend port_map [list "SW\[$i\]" "sw\[$i\]" "Input variable $var_idx"]
+}
+for {set i 0} {$i < 5} {incr i} {
+    lappend port_map [list "LED\[$i\]" "led\[$i\]" "Cycle number bit $i"]
+}
+for {set i 5} {$i < 15} {incr i} {
+    lappend port_map [list "LED\[$i\]" "led\[$i\]" "Unused (off)"]
+}
+lappend port_map [list "LED\[15\]" "led\[15\]" "Last cycle flag"]
+for {set i 0} {$i < 7} {incr i} {
+    set segment [lindex {ca cb cc cd ce cf cg} $i]
+    lappend port_map [list "SEG\[$i\]" $segment "Display segment"]
+}
+for {set i 0} {$i < 8} {incr i} {
+    lappend port_map [list "AN\[$i\]" "an\[$i\]" "Display digit $i"]
+}
+
+# ------------------------------------------------------------------------------
+# 5. Read FPGA Board Pins from Master XDC (Digilent Nexys 4 DDR - xc7a100tcsg324-1)
+# ------------------------------------------------------------------------------
+set master_xdc [file join $repo_dir "output" "verilog" "Nexys4DDR_Master.xdc"]
+if {![file exists $master_xdc]} {
+    puts "ERROR: Master constraints file not found: $master_xdc"
+    exit 1
+}
+
+set fp [open $master_xdc r]
+foreach line [split [read $fp] "\n"] {
+    if {[regexp {PACKAGE_PIN\s+(\S+)\s+IOSTANDARD\s+(\S+).*Sch=(\S+)} $line -> pin iostd net]} {
+        set board_pins($net) [list $pin $iostd]
+    }
+}
 close $fp
-
-foreach line [split $v_content "\n"] {
-    set clean [string trim $line]
-    if {[regexp {input\s+(?:wire\s+)?([a-zA-Z0-9_]+)} $clean -> p]} {
-        if {[lsearch -exact $inputs $p] == -1} {
-            lappend inputs $p
-        }
-    }
-    if {[regexp {output\s+(?:wire\s+)?([a-zA-Z0-9_]+)} $clean -> p]} {
-        if {[lsearch -exact $outputs $p] == -1} {
-            lappend outputs $p
-        }
-    }
-}
-
-puts "INFO: Detected input ports:  $inputs"
-puts "INFO: Detected output ports: $outputs"
-
-# ------------------------------------------------------------------------------
-# 5. FPGA Board Pin Mapping (Digilent Nexys 4 DDR - xc7a100tcsg324-1)
-# ------------------------------------------------------------------------------
-# Switches 0-15
-set switch_pins {
-    {"J15" "LVCMOS33" "SW[0]"}
-    {"L16" "LVCMOS33" "SW[1]"}
-    {"M13" "LVCMOS33" "SW[2]"}
-    {"R15" "LVCMOS33" "SW[3]"}
-    {"R17" "LVCMOS33" "SW[4]"}
-    {"T18" "LVCMOS33" "SW[5]"}
-    {"U18" "LVCMOS33" "SW[6]"}
-    {"R13" "LVCMOS33" "SW[7]"}
-    {"T8"  "LVCMOS18" "SW[8]"}
-    {"U8"  "LVCMOS18" "SW[9]"}
-    {"R16" "LVCMOS33" "SW[10]"}
-    {"T13" "LVCMOS33" "SW[11]"}
-    {"H6"  "LVCMOS33" "SW[12]"}
-    {"U12" "LVCMOS33" "SW[13]"}
-    {"U11" "LVCMOS33" "SW[14]"}
-    {"V10" "LVCMOS33" "SW[15]"}
-}
-
-# LEDs 0-15
-set led_pins {
-    {"H17" "LVCMOS33" "LED[0]"}
-    {"K15" "LVCMOS33" "LED[1]"}
-    {"J13" "LVCMOS33" "LED[2]"}
-    {"N14" "LVCMOS33" "LED[3]"}
-    {"R18" "LVCMOS33" "LED[4]"}
-    {"V17" "LVCMOS33" "LED[5]"}
-    {"U17" "LVCMOS33" "LED[6]"}
-    {"U16" "LVCMOS33" "LED[7]"}
-    {"V16" "LVCMOS33" "LED[8]"}
-    {"T15" "LVCMOS33" "LED[9]"}
-    {"U14" "LVCMOS33" "LED[10]"}
-    {"T16" "LVCMOS33" "LED[11]"}
-    {"V15" "LVCMOS33" "LED[12]"}
-    {"V14" "LVCMOS33" "LED[13]"}
-    {"V12" "LVCMOS33" "LED[14]"}
-    {"V11" "LVCMOS33" "LED[15]"}
-}
 
 # ------------------------------------------------------------------------------
 # 6. Generate XDC Constraints File (auto_pins.xdc)
@@ -181,38 +161,27 @@ puts $xdc_fp "## Auto-generated constraints for [file tail $top_file]"
 puts $xdc_fp "## Target: Nexys 4 DDR (xc7a100tcsg324-1)"
 puts $xdc_fp "## =============================================================================="
 puts $xdc_fp ""
-puts $xdc_fp "## Input mappings -> Switches"
 
 set mapping_table {}
-for {set i 0} {$i < [llength $inputs]} {incr i} {
-    set port [lindex $inputs $i]
-    if {$i < [llength $switch_pins]} {
-        set sw [lindex $switch_pins $i]
-        set pin [lindex $sw 0]
-        set iostd [lindex $sw 1]
-        set comp [lindex $sw 2]
-        puts $xdc_fp "set_property -dict { PACKAGE_PIN $pin IOSTANDARD $iostd } \[get_ports { $port }\]; # $comp"
-        lappend mapping_table [list "INPUT" $port $comp $pin $iostd]
-    } else {
-        puts "WARNING: Input '$port' exceeds available 16 switches."
+foreach entry $port_map {
+    lassign $entry port net role
+    if {![info exists board_pins($net)]} {
+        puts "ERROR: Board net '$net' not found in $master_xdc"
+        exit 1
     }
+    lassign $board_pins($net) pin iostd
+    puts $xdc_fp "set_property -dict { PACKAGE_PIN $pin IOSTANDARD $iostd } \[get_ports { $port }\]; # $role"
+    lappend mapping_table [list $port $net $pin $iostd $role]
 }
 
 puts $xdc_fp ""
-puts $xdc_fp "## Output mappings -> LEDs"
-for {set j 0} {$j < [llength $outputs]} {incr j} {
-    set port [lindex $outputs $j]
-    if {$j < [llength $led_pins]} {
-        set led [lindex $led_pins $j]
-        set pin [lindex $led 0]
-        set iostd [lindex $led 1]
-        set comp [lindex $led 2]
-        puts $xdc_fp "set_property -dict { PACKAGE_PIN $pin IOSTANDARD $iostd } \[get_ports { $port }\]; # $comp"
-        lappend mapping_table [list "OUTPUT" $port $comp $pin $iostd]
-    } else {
-        puts "WARNING: Output '$port' exceeds available 16 LEDs."
-    }
-}
+puts $xdc_fp "## Clock"
+puts $xdc_fp "create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} \[get_ports { CLK100MHZ }\];"
+puts $xdc_fp ""
+puts $xdc_fp "## Datapath only moves on a debounced button press, so it has many clocks to settle"
+puts $xdc_fp "set datapath_regs \[get_cells -hierarchical -filter { NAME =~ *q_reg* || NAME =~ *step_reg* }\]"
+puts $xdc_fp "set_multicycle_path 8 -setup -from \$datapath_regs"
+puts $xdc_fp "set_multicycle_path 7 -hold -from \$datapath_regs"
 close $xdc_fp
 puts "INFO: Auto-generated constraints written to: $generated_xdc"
 
@@ -488,15 +457,11 @@ puts $rpt ""
 puts $rpt "================================================================================"
 puts $rpt "                          REAL FPGA I/O PIN MAPPING                             "
 puts $rpt "================================================================================"
-puts $rpt [format "%-8s | %-12s | %-18s | %-12s | %-10s" "TYPE" "PORT NAME" "BOARD COMPONENT" "PACKAGE PIN" "IOSTANDARD"]
-puts $rpt "---------+--------------+--------------------+--------------+-----------"
+puts $rpt [format "%-12s | %-12s | %-12s | %-10s | %s" "PORT NAME" "BOARD NET" "PACKAGE PIN" "IOSTANDARD" "ROLE"]
+puts $rpt "-------------+--------------+--------------+------------+----------------------"
 foreach m $mapping_table {
-    set t [lindex $m 0]
-    set p [lindex $m 1]
-    set c [lindex $m 2]
-    set pin [lindex $m 3]
-    set std [lindex $m 4]
-    puts $rpt [format "%-8s | %-12s | %-18s | %-12s | %-10s" $t $p $c $pin $std]
+    lassign $m port net pin iostd role
+    puts $rpt [format "%-12s | %-12s | %-12s | %-10s | %s" $port $net $pin $iostd $role]
 }
 puts $rpt "================================================================================"
 puts $rpt ""
