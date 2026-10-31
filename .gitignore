@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Output files
+*.txt
+*.v
+*.vcd
+sim
+metrics.txt
+top.v
+output/metrics/*.txt
+output/verilog/*.v
+output/verilog/*/
+output/fpga/*.log
+
+# Keep directory structure & master constraints
+!output/metrics/.gitkeep
+!output/verilog/.gitkeep
+!output/verilog/Nexys4DDR_Master.xdc
+!output/fpga/.gitkeep
+
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# OS artifacts
+.DS_Store
