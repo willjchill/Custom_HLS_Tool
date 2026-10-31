@@ -1,0 +1,4 @@
+X = A * B
+X = C + D
+A = B * Y
+X = D + B
