@@ -30,6 +30,14 @@ Z = X - B
 Q = B * Z
 ```
 
+There are two important assumptions:
+
+1. We can assume maximum of 20 lines in input text file.
+
+2. We can assume that output results are always positive.
+
+This is helpful since we do not have to worry about negative number outputs on seven segment display or excessively using input switches to choose line number in text file for debug output!
+
 # 3.1 Using HLS tool in Python
 
 Make sure you have Vivado and Python installed beforehand (x86 preferred). Useful to have a Artix-7 FPGA compatible with this project.
@@ -61,7 +69,7 @@ vivado -mode batch -source vivadoSynth.tcl -tclargs --output_dir output/verilog/
 ```
 
 Features:
-- **Automatic I/O Mapping**: Inputs are automatically mapped in order to Nexys 4 DDR switches (`SW[0]`, `SW[1]`, ...), and outputs are automatically mapped to LEDs (`LED[0]`, `LED[1]`, ...).
+- **Automatic I/O Mapping**: Nexys 4 DDR switches (`SW[0]`, `SW[1]`, ...) used to specify line number of equation in binary and then that output is automatically mapped to 7 segment display. There will be a button that can be pressed to step through every equation in input text file (e.g. "clocking") starting from first equation line. Reset button will be included if user wants to start again from first line.
 - **Target Part**: `xc7a100tcsg324-1` (Artix-7, Package `csg324`, Speed `-1`).
 - **Constraints**: Generates `auto_pins.xdc` inside the Verilog run directory referencing board pins from `output/verilog/Nexys4DDR_Master.xdc`.
 - **Hardware Programming**: Connects to the Vivado Hardware Manager and automatically programs connected FPGA hardware.
