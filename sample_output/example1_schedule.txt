@@ -1,0 +1,20 @@
+Source File : example1.txt
+Scheduler   : ASAP
+Constraints : {'adder': 1, 'multiplier': 1, 'subtractor': 1}
+Cycles      : 3
+FUs         : 3
+Registers   : 1
+Muxes       : 3
+
+Input Switches
+  A_0 : SW[6:5]
+  B_0 : SW[8:7]
+
+Functional Units (select with SW[4:0])
+Cycle 1
+  FU 0  (adder) : X_0 = A_0 + B_0 -> R0
+Cycle 2
+  FU 0  (adder) : Y_0 = X_0 + A_0
+  FU 1  (subtractor) : Z_0 = X_0 - B_0 -> R0
+Cycle 3
+  FU 2  (multiplier) : Q_0 = B_0 * Z_0
