@@ -14,14 +14,8 @@ def _tokenize_file(input_file: Path) -> List[List[str]]:
     X = 1
     X = A + B
     Y = B + C
-    [[X, 1], [X, A, B, +], [Y, B, C, -], ..]]
+    [[X, 1], [X, A, B, +], [Y, B, C, +], ..]
     """
-    # invariant
-    with input_file.open("r", encoding="utf-8") as f:
-        total_lines = sum(1 for _ in f)
-    if total_lines > 20:
-        raise ValueError(f"Lines in file exceeds maximum of 20: {total_lines} lines total")
-
     tokens_per_line = []
     # using regex to split line
     LINE_PATTERN = re.compile(
@@ -42,8 +36,6 @@ def _tokenize_file(input_file: Path) -> List[List[str]]:
             match = LINE_PATTERN.fullmatch(line)
             if not match:
                 raise ValueError(f"Invalid statement syntax: '{line}'")
-            if not match.group("lhs").isidentifier():
-                raise ValueError(f"Invalid variable name: '{line}'")
             # adding lines
             if match.group("op"):
                 tokens_per_line.append([match.group("lhs"), match.group("op1"), match.group("op2"), match.group("op")]) # real ops
@@ -51,6 +43,9 @@ def _tokenize_file(input_file: Path) -> List[List[str]]:
                 if int(match.group("val")) > 3:
                     raise ValueError(f"Invalid hard-coded assignment. Integer must be between 0-3: '{line}'")
                 tokens_per_line.append([match.group("lhs"), match.group("val")]) # hard-coded assignment
+
+    if len(tokens_per_line) > 20:
+        raise ValueError(f"Lines in file exceeds maximum of 20: {len(tokens_per_line)} lines total")
 
     return tokens_per_line
 
@@ -170,8 +165,3 @@ class DAG:
             raise ValueError("Input file has no arithmetic operations to synthesize.")
         if len(self.inputs) > MAX_INPUT_VARS:
             raise ValueError(f"Uninitialized input variables exceeds maximum of {MAX_INPUT_VARS}: {self.inputs}")
-
-if __name__ == "__main__":
-    print("Debug")
-    test = Path("../../testcases/example2.txt") # make sure to run this test in utils
-    print(extractSSA(test, True))

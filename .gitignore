@@ -21,6 +21,8 @@ output/fpga/*.log
 !output/verilog/Nexys4DDR_Master.xdc
 !output/fpga/.gitkeep
 !testcases/*
+!src/verilog/*.v
+!sample_output/*
 
 
 # Virtual environments
