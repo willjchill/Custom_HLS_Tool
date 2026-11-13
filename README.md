@@ -224,7 +224,10 @@ Backup plans:
 - If the input breaks a rule (more than 5 inputs, more than 20 lines, value above 3), the tool stops and prints which rule it broke.
 - If the board does not work, show the testbench simulation and the scheduler file instead.
 
+AI Disclosure:
+AI was used to help understand and debugging the codes. All works and plans are our own.
+
 ------------
 
-Last updated 11/8/2026
+Last updated 11/13/2026
 Thinh 
