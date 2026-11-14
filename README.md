@@ -203,7 +203,7 @@ Before the demo starts:
 | --- | --- | --- |
 | 0:00 - 3:00 | Explain the flow from section 4 and our assumptions (max 20 lines, positive results, 2-bit inputs, max 5 uninitialized inputs, 1 cycle per operation) | Architecture |
 | 3:00 - 8:00 | Run `example1.txt` or `example2.txt`  with `--export-ssa` and open the SSA file. Then run ASAP, ALAP and CUSTOM, with and without `--constraints adders=1`, and compare the scheduler files | SSA, DAG, all schedulers, constraints, binding |
-| 8:00 - 10:00 | Open the generated `top_<timestamp>.v` (either `example1.txt` or `example2.txt`)  and go through `hls_core` and `top`. Run `iverilog` and `vvp` on the testbench to get `PASS` | Generated Verilog, testbench |
+| 8:00 - 10:00 | Open the generated `top_<timestamp>.v` (either `example1.txt` or `example2.txt`)  and go through `hls_core` and `top`. | Generated Verilog, testbench |
 | 10:00 - 12:00 | Program the backup bitstream for the examples (again either works). Press reset, set `SW[6:5]` and `SW[8:7]`, step with `BTNC`. Change `SW[4:0]` to look at each unit | Button clocking, unit select switches, reset, LEDs, dashes on idle units |
 | 12:00 - 27:00 | Three live runs with equations from the professor, 5 minutes each (see below) | Whole flow on new input |
 | 27:00 - 30:00 | Summary, what we could improve (more input bits, better schedulers), questions | |
