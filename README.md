@@ -82,6 +82,8 @@ vvp sim
 
 # 3.3 Synthesizing Verilog output
 
+For PHO115 lab computers, use C:\Xilinx\Vivado\2024.1\bin\vivado.bat instead of vivado in Windows Powershell to avoid alias or PATH issues.
+
 ```bash
 # Run with Vivado in batch mode (automatically picks the most recent Verilog run directory):
 vivado -mode batch -source vivadoSynth.tcl
