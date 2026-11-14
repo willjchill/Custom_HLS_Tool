@@ -225,7 +225,7 @@ Backup plans:
 - If the board does not work, show the testbench simulation and the scheduler file instead.
 
 AI Disclosure:
-AI was used to help understand and debugging the codes. All works and plans are our own.
+AI was used to help understand and debugging the codes as well as tcl files for ease of launch, testing and demo purposes. All works and plans are our own.
 
 ------------
 
